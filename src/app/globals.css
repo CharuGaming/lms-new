@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-navy: #0a0a1a;
+  --color-navy-light: #111128;
+  --color-navy-card: #16163a;
+  --color-navy-hover: #1e1e4a;
+  --color-gold: #f5a623;
+  --color-gold-hover: #ffc04d;
+  --color-gold-dim: #d4891a;
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Poppins', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #0a0a1a;
+  --foreground: #f0f0f5;
+  --text-secondary: #a0a0c0;
+  --text-muted: #6a6a90;
+  --card-bg: #16163a;
+  --card-hover: #1e1e4a;
+  --border: rgba(255, 255, 255, 0.08); /* Slightly more visible for the pill outline */
+  --accent: #f5a623;
+  --accent-glow: rgba(245, 166, 35, 0.2);
+  --glass: rgba(13, 13, 33, 0.65); /* Darker and more translucent */
+}
+
+[data-theme="light"] {
+  --background: #f8f8fc;
+  --foreground: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --text-muted: #8a8aa0;
+  --card-bg: #ffffff;
+  --card-hover: #f0f0f8;
+  --border: rgba(0, 0, 0, 0.08);
+  --accent: #d4891a;
+  --accent-glow: rgba(212, 137, 26, 0.15);
+  --glass: rgba(255, 255, 255, 0.7); /* Slightly softer for light mode */
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Glass card utility */
+.glass-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
 }
