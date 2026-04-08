@@ -5,7 +5,7 @@ import { connectDB } from '@/backend/lib/db';
 import { User } from '@/backend/models/User';
 import bcrypt from 'bcryptjs';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const { newPassword } = await req.json();
 
     if (!newPassword) {
