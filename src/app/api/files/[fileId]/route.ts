@@ -4,10 +4,17 @@ import { Enrollment } from '@/backend/models/Enrollment';
 import { Course } from '@/backend/models/Course';
 import { getFileFromDrive } from '@/backend/services/drive.service';
 import { requireAuth } from '@/backend/middleware/auth.middleware';
+import { Readable } from 'stream';
 
 export const GET = requireAuth(async (request: Request, context: any, user: { id: string, role: string }) => {
   try {
-    const { fileId } = await context.params;
+    const params = await context.params;
+    const fileId = params?.fileId;
+
+    if (!fileId) {
+      return NextResponse.json({ error: 'Missing file ID' }, { status: 400 });
+    }
+
     const { id: userId, role } = user;
 
     await connectDB();
@@ -24,31 +31,34 @@ export const GET = requireAuth(async (request: Request, context: any, user: { id
     const driveFile = await getFileFromDrive(fileId);
     
     if (!driveFile) {
-       return NextResponse.json({ error: 'File not found' }, { status: 404 });
+       return NextResponse.json({ error: 'File not found on server or Google Drive' }, { status: 404 });
     }
 
     const { stream, mimeType, fileName } = driveFile;
 
-    // Convert NodeJS readable stream to Web ReadableStream
-    const webReadableStream = new ReadableStream({
-        start(controller) {
-          stream.on('data', (chunk) => controller.enqueue(chunk));
-          stream.on('end', () => controller.close());
-          stream.on('error', (err) => controller.error(err));
-        }
-    });
+    try {
+      // Use native Node.js conversion (Node 17+)
+      // Cast as any to avoid strict TS conflicts between Node/Web streams in Next.js
+      const webStream = Readable.toWeb(stream as Readable);
 
-    return new Response(webReadableStream, {
-        headers: {
-            'Content-Type': mimeType,
-            'Content-Disposition': `inline; filename="${fileName}"`,
-            'Cache-Control': 'private, max-age=3600',
-        }
-    });
+      return new Response(webStream as any, {
+          headers: {
+              'Content-Type': mimeType || 'application/pdf',
+              'Content-Disposition': `attachment; filename="${fileName}"`,
+              'Cache-Control': 'private, max-age=3600',
+          }
+      });
+    } catch (streamError) {
+      console.error('Conversion or response error:', streamError);
+      return NextResponse.json({ error: 'Failed to process file stream' }, { status: 500 });
+    }
 
-  } catch (error) {
-    console.error('File stream error:', error);
-    return NextResponse.json({ error: 'Failed to stream file' }, { status: 500 });
+  } catch (error: any) {
+    console.error('File stream API error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error during file streaming',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 });
 

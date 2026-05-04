@@ -24,12 +24,24 @@ const getYouTubeClient = async () => {
     await connectDB();
     const settings = await Settings.findOne();
     if (settings) {
-      if (settings.youtubeClientId) clientId = settings.youtubeClientId;
-      if (settings.youtubeClientSecret) clientSecret = settings.youtubeClientSecret;
-      if (settings.youtubeRefreshToken) refreshToken = settings.youtubeRefreshToken;
+      if (settings.youtubeClientId && !settings.youtubeClientId.includes('placeholder')) {
+        clientId = settings.youtubeClientId.trim();
+      }
+      if (settings.youtubeClientSecret && !settings.youtubeClientSecret.includes('placeholder')) {
+        clientSecret = settings.youtubeClientSecret.trim();
+      }
+      if (settings.youtubeRefreshToken && !settings.youtubeRefreshToken.includes('placeholder')) {
+        refreshToken = settings.youtubeRefreshToken.trim();
+      }
     }
   } catch (dbError) {
     console.warn('Could not fetch YouTube config from database, falling back to process.env');
+  }
+
+  // Final check for placeholders
+  if (clientId?.includes('here') || clientSecret?.includes('here') || refreshToken?.includes('here')) {
+    console.warn('YouTube OAuth2 credentials still configured with placeholders.');
+    return null;
   }
 
   if (!clientId || !clientSecret || !refreshToken) {
@@ -37,7 +49,15 @@ const getYouTubeClient = async () => {
     return null;
   }
 
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  console.log('Using YouTube Client ID:', clientId.substring(0, 15) + '...');
+
+  // Use the default OAuth playground redirect URI
+  const oauth2Client = new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    'https://developers.google.com/oauthplayground'
+  );
+  
   oauth2Client.setCredentials({ refresh_token: refreshToken });
 
   return google.youtube({ version: 'v3', auth: oauth2Client });

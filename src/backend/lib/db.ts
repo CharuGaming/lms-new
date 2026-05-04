@@ -13,8 +13,8 @@ export async function connectDB() {
   if (!cached.promise) {
     let uri = MONGODB_URI;
 
-    // If no external MongoDB URI, spin up an in-memory MongoDB
-    if (!uri || uri.includes('localhost:27017')) {
+    // Use in-memory MongoDB ONLY if no MONGODB_URI is provided at all
+    if (!uri) {
       const { MongoMemoryServer } = await import('mongodb-memory-server');
 
       // Cache the server instance globally
@@ -24,6 +24,8 @@ export async function connectDB() {
       }
       uri = (global as any).__mongoServer.getUri();
       console.log('✅ Using in-memory MongoDB');
+    } else {
+      console.log('✅ Connecting to Persistent MongoDB');
     }
 
     cached.promise = mongoose.connect(uri).then(async (m) => {
@@ -36,20 +38,26 @@ export async function connectDB() {
         console.log('🌱 Database seeded with sample courses');
       }
 
-      // Create default admin user
+      // Create default admin user using findOneAndReplace with upsert for robustness
       const { User } = await import('@/backend/models/User');
-      const adminCount = await User.countDocuments({ role: 'admin' });
-      if (adminCount === 0) {
-        const bcrypt = await import('bcryptjs');
-        const hashedPassword = await bcrypt.hash('admin123', 12);
-        await User.create({
-          name: 'Admin',
-          email: 'admin@educator.com',
-          password: hashedPassword,
-          role: 'admin',
-        });
-        console.log('👤 Default admin created (admin@educator.com / admin123)');
-      }
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash('admin123', 12);
+      
+      await User.findOneAndUpdate(
+        { email: 'admin@educator.com' },
+        { 
+          $set: {
+            password: hashedPassword,
+            role: 'admin'
+          },
+          $setOnInsert: {
+            name: 'Admin',
+            email: 'admin@educator.com',
+          }
+        },
+        { upsert: true, new: true }
+      );
+      console.log('👤 Admin user verified/reset');
 
       // Seed a demo student and pending enrollment
       const { Enrollment } = await import('@/backend/models/Enrollment');
@@ -57,12 +65,18 @@ export async function connectDB() {
       if (enrollmentCount === 0) {
         const bcrypt = await import('bcryptjs');
         const studentHash = await bcrypt.hash('student123', 12);
-        const student = await User.create({
-          name: 'Demo Student',
-          email: 'student@demo.com',
-          password: studentHash,
-          role: 'student',
-        });
+        const student = await User.findOneAndUpdate(
+          { email: 'student@demo.com' },
+          {
+            $setOnInsert: {
+              name: 'Demo Student',
+              email: 'student@demo.com',
+              password: studentHash,
+              role: 'student',
+            }
+          },
+          { upsert: true, new: true }
+        );
 
         await Enrollment.create({
           userId: student._id,

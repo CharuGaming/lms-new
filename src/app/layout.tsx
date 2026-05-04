@@ -3,8 +3,6 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/frontend/components/ThemeProvider";
 import { AuthProvider } from "@/frontend/components/AuthProvider";
-import Navbar from "@/frontend/components/Navbar";
-import Footer from "@/frontend/components/Footer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const poppins = Poppins({ weight: ["400", "500", "600", "700", "800", "900"], subsets: ["latin"], variable: "--font-poppins" });
@@ -21,9 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col antialiased">
         <AuthProvider>
           <ThemeProvider>
-            <Navbar />
-            <main className="flex-1 pt-24 pb-12">{children}</main>
-            <Footer />
+            {children}
           </ThemeProvider>
         </AuthProvider>
       </body>
